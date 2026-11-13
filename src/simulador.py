@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-from transmissao_e_canais import texto_para_bits, bits_para_texto, codificar_linha, mapear_bpsk, mapear_qpsk, mapear_16qam, canal_awgn, canal_burst_noise
+from transmissao_e_canais import (texto_para_bits, bits_para_texto, codificar_linha, 
+                                  mapear_bpsk, mapear_qpsk, mapear_16qam, 
+                                  canal_awgn, canal_burst_noise, plotar_comparacao_constelacoes, transmitir)
 from recepcao_e_metricas import demodular, decodificar_ami, decodificar_manchester, calcular_ber, calcular_eficiencia_espectral
 
 def executar_simulacao_ber(modulacao: str, cod_linha: str, snr_db: float, canal_tipo: str, bits_originais: np.ndarray):
@@ -94,19 +96,45 @@ if __name__ == "__main__":
                     })
                     print(f"Canal: {canal.upper():<5} | Mod: {modulacao:<6} | Cod: {cod_linha:<10} | SNR: {snr:>3} dB | BER Média: {ber_medio:.5f} +/- {ber_std:.5f}")
 
-    # 2. Salvar os dados brutos em CSV
+    # 2. Preparar diretórios e salvar os dados brutos em CSV
     df = pd.DataFrame(resultados)
     
-    # Descobre a pasta raiz do projeto dinamicamente (sobe um nível a partir da pasta 'src')
+    # Descobre a pasta raiz do projeto dinamicamente
     diretorio_script = os.path.dirname(os.path.abspath(__file__))
     raiz_projeto = os.path.dirname(diretorio_script)
+    
+    # Garantir que as pastas de resultados existam
     diretorio_saida = os.path.join(raiz_projeto, "resultados", "dados_brutos")
-    
-    # Garantir que a pasta de resultados existe
+    diretorio_figuras = os.path.join(raiz_projeto, "resultados", "figuras")
     os.makedirs(diretorio_saida, exist_ok=True)
+    os.makedirs(diretorio_figuras, exist_ok=True)
     
+    # Salvar o CSV
     caminho_csv = os.path.join(diretorio_saida, "resultados_simulacao.csv")
     df.to_csv(caminho_csv, index=False)
+    print(f"\nDados salvos com sucesso em: {caminho_csv}")
+
+    # 3. Gerar e Salvar Gráficos de Constelação (Item 6 do trabalho)
+    print("\nGerando e salvando gráficos de constelação...")
+    modulacoes_constelacao = ['BPSK', 'QPSK', '16-QAM']
     
-    print(f"\n=== SIMULAÇÃO CONCLUÍDA! ===")
-    print(f"Dados salvos com sucesso em: {caminho_csv}")
+    for mod in modulacoes_constelacao:
+        # Gerar símbolos limpos
+        simbolos_limpos = transmitir("Teste de Constelacao", modulacao=mod, cod_linha='AMI')
+        
+        # Passar pelo canal AWGN (SNR de 12 dB para ficar visível)
+        simbolos_awgn = canal_awgn(simbolos_limpos, snr_db=12.0)
+        
+        # Salvar o gráfico
+        nome_arquivo = f"constelacao_{mod.replace('-', '')}_awgn.png"
+        caminho_figura = os.path.join(diretorio_figuras, nome_arquivo)
+        
+        plotar_comparacao_constelacoes(
+            simbolos_limpos, 
+            simbolos_awgn, 
+            f"Constelacao {mod} sob AWGN (12 dB)", 
+            caminho_salvar=caminho_figura
+        )
+        print(f"Constelacao salva: {caminho_figura}")
+
+    print("\n=== SIMULAÇÃO CONCLUÍDA COM SUCESSO! ===")

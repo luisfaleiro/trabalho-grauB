@@ -69,14 +69,15 @@ def mapear_bpsk(bits: np.ndarray) -> np.ndarray:
 
 def mapear_qpsk(bits: np.ndarray) -> np.ndarray:
     """QPSK: Agrupa em pares de bits com Es = 1"""
-    if len(bits) % 2 != 0:
-        bits = np.append(bits, 0)
+    bits_work = bits.copy()
+    if len(bits_work) % 2 != 0:
+        bits_work = np.append(bits_work, 0)
         
     simbolos = []
     fator = 1.0 / np.sqrt(2)
     
-    for i in range(0, len(bits), 2):
-        b0, b1 = bits[i], bits[i+1]
+    for i in range(0, len(bits_work), 2):
+        b0, b1 = bits_work[i], bits_work[i+1]
         real = fator if b0 == 1 else -fator
         imag = fator if b1 == 1 else -fator
         simbolos.append(complex(real, imag))
@@ -85,16 +86,17 @@ def mapear_qpsk(bits: np.ndarray) -> np.ndarray:
 
 def mapear_16qam(bits: np.ndarray) -> np.ndarray:
     """16-QAM: Agrupa em quadras (4 bits) com Es = 1 exato"""
-    pad_len = (4 - (len(bits) % 4)) % 4
+    bits_work = bits.copy()
+    pad_len = (4 - (len(bits_work) % 4)) % 4
     if pad_len > 0:
-        bits = np.pad(bits, (0, pad_len), 'constant')
+        bits_work = np.pad(bits_work, (0, pad_len), 'constant')
         
     mapa_2bits = {(0,0): -3, (0,1): -1, (1,1): 1, (1,0): 3}
     simbolos = []
     
-    for i in range(0, len(bits), 4):
-        b_real = tuple(bits[i:i+2])
-        b_imag = tuple(bits[i+2:i+4])
+    for i in range(0, len(bits_work), 4):
+        b_real = tuple(bits_work[i:i+2])
+        b_imag = tuple(bits_work[i+2:i+4])
         
         real = mapa_2bits[b_real]
         imag = mapa_2bits[b_imag]
@@ -108,13 +110,26 @@ def mapear_16qam(bits: np.ndarray) -> np.ndarray:
 # ==========================================
 # 4. FUNÇÃO PRINCIPAL DE TRANSMISSÃO
 # ==========================================
-def transmitir(texto: str, modulacao: str, cod_linha: str = None) -> np.ndarray:
-    """Interface principal do Transmissor (Leonardo)."""
-    bits = texto_para_bits(texto)
+def transmitir(dados, modulacao: str, cod_linha: str = None) -> np.ndarray:
+    """
+    Interface principal do Transmissor (Leonardo).
+    Aceita 'dados' como string (texto) ou np.ndarray (vetor de bits).
+    """
+    if isinstance(dados, str):
+        bits = texto_para_bits(dados)
+    else:
+        bits = np.array(dados, dtype=int)
     
+    # Aplica codificação de linha se solicitada
     if cod_linha:
-        dados_para_modular = codificar_linha(bits, cod_linha)
-        bits_finais = np.where(dados_para_modular > 0, 1, 0)
+        # Retorna o sinal codificado em linha diretamente para transmissão em banda base
+        sinal_linha = codificar_linha(bits, cod_linha)
+        # Se for modular em RF depois da linha, mapeia valores de nível para bits limpos
+        if cod_linha.upper() == 'AMI':
+            # Para AMI: -1 e 1 são pulsos (bit 1), 0 é ausência (bit 0)
+            bits_finais = np.where(sinal_linha != 0, 1, 0)
+        else:
+            bits_finais = np.where(sinal_linha > 0, 1, 0)
     else:
         bits_finais = bits
 
@@ -130,15 +145,11 @@ def transmitir(texto: str, modulacao: str, cod_linha: str = None) -> np.ndarray:
 
 
 # ==========================================
-# 5. MODELAGEM DOS CANAIS 
+# 5. MODELAGEM DOS CANAIS
 # ==========================================
 def canal_awgn(simbolos: np.ndarray, snr_db: float) -> np.ndarray:
-    """
-    Adiciona Ruído Gaussiano Branco Aditivo (AWGN) com SNR em dB.
-    Considera Es = 1.
-    """
+    """Adiciona Ruído Gaussiano Branco Aditivo (AWGN) com SNR em dB (Es = 1)."""
     snr_linear = 10.0 ** (snr_db / 10.0)
-    # Potência do ruído complexo N0 = Es / SNR (com Es = 1)
     sigma = np.sqrt(1.0 / (2.0 * snr_linear))
     
     ruido_real = np.random.normal(0, sigma, len(simbolos))
@@ -147,20 +158,14 @@ def canal_awgn(simbolos: np.ndarray, snr_db: float) -> np.ndarray:
     return simbolos + (ruido_real + 1j * ruido_imag)
 
 def canal_burst_noise(simbolos: np.ndarray, snr_db: float, prob_rajada: float = 0.05, fator_degradacao: float = 5.0) -> np.ndarray:
-    """
-    Adiciona o 2º cenário: Ruído em Rajadas (Burst Noise).
-    Aplica ruído AWGN base e, em rajadas aleatórias, amplia a interferência.
-    """
-    # Aplica AWGN base
+    """Adiciona Ruído em Rajadas (Burst Noise)."""
     simbolos_ruidosos = canal_awgn(simbolos, snr_db)
     
-    # Gera rajadas
     mascara_rajada = np.random.rand(len(simbolos)) < prob_rajada
-    snr_rajada_db = snr_db - (10 * np.log10(fator_degradacao))
-    
-    # Ruído intenso durante as rajadas
-    ruido_rajada = canal_awgn(simbolos[mascara_rajada], snr_rajada_db) - simbolos[mascara_rajada]
-    simbolos_ruidosos[mascara_rajada] += ruido_rajada
+    if np.any(mascara_rajada):
+        snr_rajada_db = snr_db - (10 * np.log10(fator_degradacao))
+        ruido_rajada = canal_awgn(simbolos[mascara_rajada], snr_rajada_db) - simbolos[mascara_rajada]
+        simbolos_ruidosos[mascara_rajada] += ruido_rajada
     
     return simbolos_ruidosos
 
@@ -168,8 +173,8 @@ def canal_burst_noise(simbolos: np.ndarray, snr_db: float, prob_rajada: float = 
 # ==========================================
 # 6. PLOT COMPARATIVO DAS CONSTELAÇÕES
 # ==========================================
-def plotar_comparacao_constelacoes(simbolos_limpos: np.ndarray, simbolos_ruidosos: np.ndarray, titulo: str):
-    """Plota diagrama de constelação comparando Antes vs Depois do Ruído."""
+def plotar_comparacao_constelacoes(simbolos_limpos: np.ndarray, simbolos_ruidosos: np.ndarray, titulo: str, caminho_salvar: str = None):
+    """Plota diagrama de constelação. Permite salvar em arquivo sem travar o script."""
     plt.figure(figsize=(7, 7))
     plt.scatter(simbolos_ruidosos.real, simbolos_ruidosos.imag, color='red', alpha=0.5, s=20, label='Com Ruído (Pós-Canal)')
     plt.scatter(simbolos_limpos.real, simbolos_limpos.imag, color='blue', marker='o', s=60, edgecolors='black', label='Limpo (Transmissor)')
@@ -182,26 +187,27 @@ def plotar_comparacao_constelacoes(simbolos_limpos: np.ndarray, simbolos_ruidoso
     plt.ylabel('Quadrature (Q)')
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    
+    if caminho_salvar:
+        plt.savefig(caminho_salvar, dpi=300)
+        plt.close()
+    else:
+        plt.show()
 
 
 # ==========================================
-# TESTE PROVISÓRIO
+# TESTE COMPLETO
 # ==========================================
 if __name__ == "__main__":
-    mensagem_teste = "Redes de Computadores UNISINOS 2026 - Teste Completo da Transmissao e Canais"
+    mensagem_teste = "Redes de Computadores UNISINOS 2026 - Teste Completo"
     print(f"Mensagem Original: '{mensagem_teste}'")
     
-    # 1. Transmissão
     simbolos_16qam = transmitir(mensagem_teste, modulacao='16-QAM')
     print(f"Total de Símbolos 16-QAM Gerados: {len(simbolos_16qam)}")
     print(f"Energia Média: {np.mean(np.abs(simbolos_16qam)**2):.4f}")
     
-    # 2. Passagem pelos Canais (SNR de 12 dB para teste)
     snr_teste = 12.0
     sinal_awgn = canal_awgn(simbolos_16qam, snr_db=snr_teste)
     sinal_burst = canal_burst_noise(simbolos_16qam, snr_db=snr_teste)
     
-    # 3. Plots para validação visual
-    plotar_comparacao_constelacoes(simbolos_16qam, sinal_awgn, f"Constelação 16-QAM sob Canal AWGN (SNR = {snr_teste} dB)")
-    plotar_comparacao_constelacoes(simbolos_16qam, sinal_burst, f"Constelação 16-QAM sob Canal Burst Noise (SNR = {snr_teste} dB)")
+    plotar_comparacao_constelacoes(simbolos_16qam, sinal_awgn, f"Constelação 16-QAM sob AWGN ({snr_teste} dB)")
