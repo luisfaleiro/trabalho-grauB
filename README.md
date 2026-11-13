@@ -2,6 +2,26 @@
 
 Simulador de transmissão digital ponta a ponta com codificação de linha, modulação, canais ruidosos e cálculo de métricas (BER e Eficiência Espectral).
 
+## Detalhamento das Responsabilidades
+
+O trabalho foi dividido de forma equilibrada, onde cada integrante focou em uma metade da cadeia de comunicação, além das tarefas conjuntas de documentação e apresentação.
+
+| Etapa do Projeto | Tarefa Específica | Responsável |
+| :--- | :--- | :--- |
+| **Transmissor** | Conversão de texto ASCII para binário e vice-versa | Leonardo |
+| **Transmissor** | Implementação das codificações de linha (AMI e Manchester) | Leonardo |
+| **Transmissor** | Mapeamento e modulação digital (BPSK, QPSK e 16-QAM) | Leonardo |
+| **Canal** | Modelagem do canal AWGN e do canal Burst Noise (ruído em rajadas) | Leonardo |
+| **Análise Visual** | Geração dos diagramas de constelação antes e depois do canal | Leonardo |
+| **Receptor** | Demodulação por detector de menor distância euclidiana | Luís |
+| **Receptor** | Decodificação de linha (AMI e Manchester) e remoção de padding | Luís |
+| **Métricas** | Cálculo de BER (Bit Error Rate) e Eficiência Espectral | Luís |
+| **Automação** | Criação do script principal (`simulador.py`) com os 8 valores de SNR, 5 repetições e 2 canais | Luís |
+| **Dados e Gráficos** | Geração dos gráficos de BER x SNR (com barras de erro) e Tabela de Compromisso | Luís |
+| **Documentação** | Criação e organização do repositório no GitHub, além da escrita do README | Luís |
+| **Validação** | Teste de consistência em canal ideal (texto voltando 100% sem erros) | Luís |
+| **Fechamento** | Gravação do vídeo demonstrativo e apresentação oral | Ambos |
+
 ## Estrutura de Pastas
 
 ```text
