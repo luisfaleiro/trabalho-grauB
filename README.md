@@ -23,6 +23,7 @@ trabalho-grauB/
 │   │   ├── constelacao_QPSK_awgn.png # Constelação QPSK pós-canal
 │   │   └── constelacao_16QAM_awgn.png # Constelação 16-QAM pós-canal
 │   └── tabela_compromisso.md        # Tabela extraída em Markdown
+|   └── video_demonstracao.mp4       # Vídeo de apresentação do projeto
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -91,4 +92,6 @@ Diagramas de Constelação
 Foram geradas constelações (limpas vs. ruidosas a 12 dB) para BPSK, QPSK e 16-QAM, demonstrando visualmente o efeito do ruído gaussiano nos símbolos transmitidos. Estão disponíveis na pasta resultados/figuras/.
 
 Vídeo de Demonstração
-(Adicionar o link do vídeo aqui)
+## Vídeo de Demonstração
+O vídeo com a demonstração do funcionamento do código e a análise dos resultados está disponível na pasta de resultados do repositório.
+(./resultados/video_demonstracao.mp4)

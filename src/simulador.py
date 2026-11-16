@@ -51,7 +51,75 @@ def executar_simulacao_ber(modulacao: str, cod_linha: str, snr_db: float, canal_
     # 8. Cálculo de BER
     return calcular_ber(bits_originais, bits_recebidos)
 
+def executar_teste_consistencia():
+    """
+    Testar recuperação perfeita no canal ideal.
+    Requisito do trabalho: testar recuperação perfeita no canal ideal.
+    
+    NOTA DE PROJETO (Por que usar uma mensagem curta aqui?):
+    1. TESTE FUNCIONAL (Smoke Test): O objetivo deste teste NÃO é estatístico, 
+       mas sim provar que a lógica da cadeia (Texto -> Modulação -> Canal Ideal -> 
+       Demodulação -> Texto) está correta e sem bugs de padding ou decodificação.
+    2. PERFORMANCE: Reconstruir o texto (função bits_para_texto) é um processo 
+       lento em Python. Fazer isso com 100.000 bits em 480 testes deixaria o 
+       script extremamente pesado. 
+       
+    A mensagem abaixo tem 43 caracteres (344 bits). A validação estatística 
+    com os 100.000 bits exigidos pelo edital ocorre na bateria principal de testes.
+    
+    """
+    print("\n=== TESTE DE CONSISTÊNCIA (Canal Ideal / SNR Alta) ===")
+    mensagem = "Redes de Computadores - Teste de Validacao!"
+    snr_ideal = 100.0 # Praticamente sem ruído
+    
+    bits_originais = texto_para_bits(mensagem)
+    tamanho_original = len(bits_originais)
+    
+    combinacoes = [
+        ('BPSK', 'AMI'), ('BPSK', 'MANCHESTER'),
+        ('QPSK', 'AMI'), ('QPSK', 'MANCHESTER'),
+        ('16-QAM', 'AMI'), ('16-QAM', 'MANCHESTER')
+    ]
+    
+    sucesso_total = True
+    for mod, cod in combinacoes:
+        # Roda a cadeia completa internamente
+        sinal_codificado = codificar_linha(bits_originais, cod)
+        if cod == 'AMI':
+            bits_para_modular = np.where(sinal_codificado != 0, 1, 0)
+        else:
+            bits_para_modular = np.where(sinal_codificado > 0, 1, 0)
+            
+        if mod == 'BPSK': simbolos_limpos = mapear_bpsk(bits_para_modular)
+        elif mod == 'QPSK': simbolos_limpos = mapear_qpsk(bits_para_modular)
+        else: simbolos_limpos = mapear_16qam(bits_para_modular)
+        
+        simbolos_ruidosos = canal_awgn(simbolos_limpos, snr_db=snr_ideal)
+        bits_demodulados = demodular(simbolos_ruidosos, mod)
+        
+        if cod == 'AMI': bits_recebidos = decodificar_ami(bits_demodulados)
+        else: bits_recebidos = decodificar_manchester(bits_demodulados)
+            
+        bits_recebidos = bits_recebidos[:tamanho_original]
+        
+        texto_reconstruido = bits_para_texto(bits_recebidos)
+        ber = calcular_ber(bits_originais, bits_recebidos)
+        
+        if texto_reconstruido == mensagem and ber == 0.0:
+            print(f"[OK] {mod:<6} | {cod:<10} | BER: {ber}")
+        else:
+            print(f"[FALHA] {mod:<6} | {cod:<10} | Texto voltou: {texto_reconstruido}")
+            sucesso_total = False
+            
+    if sucesso_total:
+        print("=== TESTE DE CONSISTÊNCIA PASSOU! ===\n")
+    else:
+        print("=== ATENÇÃO: FALHA NO TESTE DE CONSISTÊNCIA! ===\n")
+
 if __name__ == "__main__":
+    # Chama o teste de consistência logo no início
+    executar_teste_consistencia()
+
     print("=== INICIANDO AUTOMAÇÃO DE TESTES (ITEM 10) ===")
     
     # 1. Gerar uma mensagem longa para garantir 100.000 bits
