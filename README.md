@@ -56,7 +56,7 @@ Recepção e Métricas (src/recepcao_e_metricas.py): Demodulação (menor distâ
 Execução e Análise (src/simulador.py e scripts/): Automação dos testes, geração de dados brutos (.csv), gráficos de BER x SNR, diagramas de constelação e tabela de compromisso.
 
 Parâmetros Experimentais
-Mensagem base: Texto longo gerado aleatoriamente (125.000 caracteres = 1.000.000 de bits).
+Mensagem base: Texto longo gerado aleatoriamente (12.500 caracteres = 100.000 bits por repetição, totalizando 500.000 bits por cenário com as 5 repetições).
 
 Codificações de linha: AMI e Manchester.
 
@@ -69,7 +69,7 @@ Variação de SNR: -2 dB a 12 dB (8 valores, passo de 2 dB).
 Repetições: 5 repetições por combinação para cálculo de desvio padrão (variabilidade).
 
 Divisão de Responsabilidades
-Leonardo Hillesheim: Conversão de dados, Codificação de linha, Transmissor (Modulação), Modelagem dos Canais (AWGN e Burst) e plots de constelação.
+Leonardo : Conversão de dados, Codificação de linha, Transmissor (Modulação), Modelagem dos Canais (AWGN e Burst) e plots de constelação.
 
 Luís: Demodulação, Decodificação de linha, Cálculo de métricas (BER e Eficiência), Automação de testes, Gráficos finais, Gestão do GitHub e documentação.
 
