@@ -24,6 +24,7 @@ trabalho-grauB/
 │   │   └── constelacao_16QAM_awgn.png # Constelação 16-QAM pós-canal
 │   └── tabela_compromisso.md        # Tabela extraída em Markdown
 |   └── video_demonstracao.mp4       # Vídeo de apresentação do projeto
+|   └── Apresentacao_Simulador_Redes_GrauB-v2.pptx # Slides da apresentação
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -95,3 +96,8 @@ Vídeo de Demonstração
 ## Vídeo de Demonstração
 O vídeo com a demonstração do funcionamento do código e a análise dos resultados está disponível na pasta de resultados do repositório.
 (./resultados/video_demonstracao.mp4)
+
+## Apresentação
+Os slides utilizados na apresentação oral do trabalho também estão disponíveis no repositório.
+
+(./resultados/Apresentacao_Simulador_Redes_GrauB-v2.pptx)
